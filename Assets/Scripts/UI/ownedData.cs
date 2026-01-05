@@ -3,38 +3,68 @@ using static UnityEditor.Progress;
 
 public class ownedData : MonoBehaviour
 {
-    private Stack Weapons;
-    private Stack Smokes;
-    private Stack Grenades;
-     
+    public static int amount;
 
+    public static string weapon = "unowned";
+    public static int greCount;
+    public static int smoCount;
 
     private void Update()
     {
-        
+        if (greCount <0 || greCount > 5)
+        {
+            if (greCount < 0)
+            {
+                greCount = 0;
+                Debug.Log("Empty");
+            }
+            else if (greCount >5)
+            {
+                greCount = 5;
+                Debug.Log("Full");
+            }
+        }
+
+        if (smoCount < 0 || smoCount > 5)
+        {
+            if (smoCount < 0)
+            {
+                smoCount = 0;
+                Debug.Log("Empty");
+            }
+            else if (greCount > 5)
+            {
+                smoCount = 5;
+                Debug.Log("Full");
+            }
+        }
     }
 
     public void buyItems(string item)
     {
-        if (item == "Weapons") { Weapons.push(); }
+        if (item == "Weapons")
+        { 
+            weapon = "Owned";
+            amount -= 1500;
+        }
         if (item == "Smokes")
         {
-            Smokes.push();
-            Collectibles.smoCount++;
+            amount -= 500;
+            smoCount++;
         }
         if (item == "Grenades")
-        { 
-            Grenades.push();
-            Collectibles.greCount++;
+        {
+            amount -= 700;
+           greCount++;
         }
 
     }
 
     public void sellItems(string item)
     {
-        if (item == "Weapons") { Weapons.pop(); }
-        if (item == "Smokes") { Smokes.pop(); }
-        if (item == "Grenades") { Grenades.pop(); }
+        if (item == "Weapons") { weapon = "Unowned"; }
+        if (item == "Smokes") { smoCount--; }
+        if (item == "Grenades") { greCount--; }
     }
 
 }

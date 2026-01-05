@@ -4,30 +4,31 @@ using TMPro;
 public class Collectibles : MonoBehaviour
 {
     [SerializeField]
-    private TextMeshPro ownedGrenades;
-    [SerializeField] private TextMeshPro ownedSmokes;
-    [SerializeField] private TextMeshPro amountText;
-    public static int greCount;
-    public static int smoCount;
+    private TextMeshProUGUI ownedGrenades;
+    [SerializeField] private TextMeshProUGUI ownedSmokes;
+    [SerializeField] private TextMeshProUGUI amountText;
+    [SerializeField] private TextMeshProUGUI weaponText;
+    
     
     
 
-    private int amount;
+    
 
     private void Start()
     {
-        amount = 3000;
-        greCount = 0;
-        smoCount = 0;
+        ownedData.amount = 3000;
+        ownedData.smoCount = 0;
+        ownedData.greCount = 0;
     }
 
 
     private void Update()
     {
-        amountText.text = $"Amount:{amount}";
-        ownedGrenades.text = $"Grenades:{greCount}";
-        ownedSmokes.text = $"Smokes:{smoCount}";
-
+        amountText.text = $"Amount:{ownedData.amount}";
+        amountText.text = $"Amount:{ownedData.amount}";
+        ownedGrenades.text = $"Grenades:{ownedData.greCount}";
+        ownedSmokes.text = $"Smokes:{ownedData.smoCount}";
+        weaponText.text = ownedData.weapon;
 
     }
 }
