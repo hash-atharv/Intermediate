@@ -3,8 +3,8 @@ using TMPro;
 
 public class Collectibles : MonoBehaviour
 {
-    [SerializeField]
-    private TextMeshProUGUI ownedGrenades;
+    
+    [SerializeField] private TextMeshProUGUI ownedGrenades;
     [SerializeField] private TextMeshProUGUI ownedSmokes;
     [SerializeField] private TextMeshProUGUI amountText;
     [SerializeField] private TextMeshProUGUI weaponText;
