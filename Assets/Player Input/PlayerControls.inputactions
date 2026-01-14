@@ -17,9 +17,18 @@
                 },
                 {
                     "name": "Fire",
-                    "type": "PassThrough",
+                    "type": "Button",
                     "id": "ca1ef786-94cd-4529-bf97-c41ddc7e4212",
-                    "expectedControlType": "Vector3",
+                    "expectedControlType": "",
+                    "processors": "",
+                    "interactions": "",
+                    "initialStateCheck": false
+                },
+                {
+                    "name": "UI control",
+                    "type": "Button",
+                    "id": "0e09da6c-603c-453f-bea6-60c20b31c19b",
+                    "expectedControlType": "",
                     "processors": "",
                     "interactions": "",
                     "initialStateCheck": false
@@ -32,7 +41,7 @@
                     "path": "<Keyboard>/f",
                     "interactions": "",
                     "processors": "",
-                    "groups": "",
+                    "groups": ";Keyboard",
                     "action": "Fire",
                     "isComposite": false,
                     "isPartOfComposite": false
@@ -91,6 +100,17 @@
                     "action": "Move",
                     "isComposite": false,
                     "isPartOfComposite": true
+                },
+                {
+                    "name": "",
+                    "id": "fc034031-c450-416a-b5a1-e9104d749bed",
+                    "path": "<Keyboard>/b",
+                    "interactions": "",
+                    "processors": "",
+                    "groups": "",
+                    "action": "UI control",
+                    "isComposite": false,
+                    "isPartOfComposite": false
                 }
             ]
         }

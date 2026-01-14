@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using UnityEngine;
+using System;
 using UnityEngine.InputSystem;
 
 public class Movement : MonoBehaviour
@@ -9,6 +10,7 @@ public class Movement : MonoBehaviour
     public PlayerControls controls;
     public Vector2 moveInput;
     public Vector3 direction;
+    
 
     private CharacterController characterController;
 
@@ -20,7 +22,7 @@ public class Movement : MonoBehaviour
     {
         controls = new PlayerControls();
         characterController = GetComponent<CharacterController>();
-
+        
     }
 
     private void OnEnable() => controls.Gameplay.Enable();
@@ -32,7 +34,7 @@ public class Movement : MonoBehaviour
         moveInput = controls.Gameplay.Move.ReadValue<Vector2>();
         MovePlayer();
 
-
+        controls.Gameplay.Fire.performed += Attack;
 
 
         if (isMoving)
@@ -45,6 +47,11 @@ public class Movement : MonoBehaviour
             animator.SetFloat("speed", 0);
             animator.SetBool("isWalking", false);
         }
+    }
+
+    private void Attack(InputAction.CallbackContext context)
+    {
+        animator.SetTrigger("Attack");
     }
 
     void MovePlayer()
@@ -60,6 +67,8 @@ public class Movement : MonoBehaviour
         //direction= new Vector3(moveInput.x,0, moveInput.y);
 
     }
+
+    
 
     private void Moving(Vector3 move)
     {

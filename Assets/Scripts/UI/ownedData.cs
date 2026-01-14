@@ -23,9 +23,12 @@ public class ownedData : MonoBehaviour
     {
         if (item == "Weapons")
         { 
+            if (amount >= 1500)
+            {
+                weapon = "Owned";
+                amount -= 1500;
+            }
             
-            weapon = "Owned";
-            amount -= 1500;
         }
         if (item == "Smokes")
         {
@@ -60,8 +63,11 @@ public class ownedData : MonoBehaviour
     {
         if (item == "Weapons")
         {
-            weapon = "Unowned";
-            amount += 1500;
+           if (weapon == "Owned")
+            {
+                weapon = "Unowned";
+                amount += 1500;
+            }
         }
         if (item == "Smokes")
         {
