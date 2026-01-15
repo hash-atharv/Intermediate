@@ -15,5 +15,5 @@ MonoBehaviour:
   prefab: {fileID: 5959966788157877789, guid: 36856c0924691a949a96dea3f874f774, type: 3}
   health: 100
   damage: 50
-  spawnPosition: {x: 0.3, y: -0.77, z: 0.98}
+  spawnPosition: {x: 3.41, y: -0.77, z: 0.98}
   direction: {x: 0, y: 1, z: 0, w: -0.00000004371139}

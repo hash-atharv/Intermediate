@@ -7,15 +7,14 @@ public class Enemy : MonoBehaviour
 
     private void Awake()
     {
-        enemyData.ex();
+        enemyData.Spawner();
 
     }
 
-    public static void Damage()
-    {
-        //enemyData.TakeDamage(50);
-        //Debug.Log(enemyData.health);
-    }
+    //public void TakeDamage(float damage)
+    //{
+    //    //EnemyData.health -= damage;
+    //}
     
 
 }

@@ -1,7 +1,8 @@
+using System;
 using System.Runtime.CompilerServices;
 using UnityEngine;
-using System;
 using UnityEngine.InputSystem;
+
 
 public class Movement : MonoBehaviour
 {
@@ -10,11 +11,13 @@ public class Movement : MonoBehaviour
     public PlayerControls controls;
     public Vector2 moveInput;
     public Vector3 direction;
-    
+    public Vector3 velocity;
+    public float gravity = -9.81f;
 
     private CharacterController characterController;
 
     public bool isMoving = false;
+    public bool isGrounded ;
     Vector3 temporary;
     [SerializeField] private float speed = 5f;
 
@@ -30,13 +33,26 @@ public class Movement : MonoBehaviour
 
     void Update()
     {
-       
-        moveInput = controls.Gameplay.Move.ReadValue<Vector2>();
-        MovePlayer();
+        //For Gravity
+        //isGrounded = characterController.isGrounded;
+        //if (isGrounded && velocity.y < 0f)
+        //{
+        //    velocity.y = -2f;
+        //}
+        //velocity.y += gravity * Time.deltaTime;
+        //characterController.Move(velocity * Time.deltaTime);
 
+
+
+
+
+        // Attack 
         controls.Gameplay.Fire.performed += Attack;
 
 
+        // For movement input
+        moveInput = controls.Gameplay.Move.ReadValue<Vector2>();  
+        MovePlayer();
         if (isMoving)
         {
             animator.SetFloat("speed", speed);
