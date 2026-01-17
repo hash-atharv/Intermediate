@@ -13,8 +13,7 @@ public class EnemyMovement : MonoBehaviour
 
     private void Awake()
     {
-        //animator = GetComponent<Animator>();
-        //speed = 5f;
+        
         currentSpeed = speed;
     }
 
@@ -22,7 +21,7 @@ public class EnemyMovement : MonoBehaviour
     {
         if (other.CompareTag("Enemy trigger"))
         {
-            speed = -(speed);
+            speed = -(speed);  // to reverse the enemy direction
 
             if (speed > 0)
             {
@@ -38,7 +37,7 @@ public class EnemyMovement : MonoBehaviour
         
         if (other.CompareTag("Player"))
         {
-           
+           // booelean to stop the enemy when player is close
             currentSpeed = 0;
             animator.SetBool("isMoving", false);
 
@@ -47,25 +46,28 @@ public class EnemyMovement : MonoBehaviour
         {
             currentSpeed = speed;
             animator.SetBool("isMoving", true);
-            //animator.SetBool("isInRange", false);
 
         }
 
     }
 
-
-
-    
-
-    public void Attack()
+    private void OnTriggerExit(Collider other)
     {
-
+        if (other.CompareTag("Player"))
+        {   // To move the enemy again after player not in range
+            currentSpeed = speed;
+            animator.SetBool("isMoving", true);
+        }
     }
+
+
+
+
 
     public void MoveEnemy()
     {
         if (isMoving)
-        {
+        {   
             Enemy.transform.position += new Vector3(currentSpeed , 0, 0)* Time.deltaTime;
         }
         
@@ -85,12 +87,7 @@ public class EnemyMovement : MonoBehaviour
     private void Update()
     {
         MoveCheck();
-        MoveEnemy();
-        
-
-
-
-        
+        MoveEnemy();     
     }
 
 }

@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Enemy trigger
   - Enemy
+  - Health
   layers:
   - Default
   - TransparentFX

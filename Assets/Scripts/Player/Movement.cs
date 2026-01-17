@@ -18,7 +18,7 @@ public class Movement : MonoBehaviour
 
     public bool isMoving = false;
     public bool isGrounded ;
-    Vector3 temporary;
+    private Vector3 prevMoveData;
     [SerializeField] private float speed = 5f;
 
     void Awake()
@@ -47,8 +47,7 @@ public class Movement : MonoBehaviour
 
 
 
-        // Attack 
-        //controls.Gameplay.Fire.performed += Attack;
+        
 
 
         // For movement input
@@ -89,11 +88,12 @@ public class Movement : MonoBehaviour
 
     private void Moving(Vector3 move)
     {
-        if (temporary == null)
-        { temporary = move; }
+        // for maintaining the isMoving boolean 
+        if (prevMoveData == null)
+        { prevMoveData = move; }
 
-        if (temporary != move) { isMoving = true; }
-        else if(temporary == move) { isMoving = false; }
+        if (prevMoveData != move) { isMoving = true; }
+        else if(prevMoveData == move) { isMoving = false; }
     }
 
 }

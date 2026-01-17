@@ -5,9 +5,7 @@ using UnityEngine;
 public class EnemyData : ScriptableObject
 {
     [SerializeField] private GameObject prefab;
-    //[SerializeField] private float health;
-    //[SerializeField] public float damage;
-    //[SerializeField] private Vector3 ;
+    
     [SerializeField] private Quaternion direction;
 
     public void Spawner( Vector3 spawnPosition)
@@ -16,12 +14,7 @@ public class EnemyData : ScriptableObject
         
     }
 
-    //public void healthControl(float damage)
-    //{
-    //    health -= damage;
-
-    //    Debug.Log(health);
-    //}
+   
 
 
 }

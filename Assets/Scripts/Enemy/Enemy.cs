@@ -40,8 +40,7 @@ public class Enemy : MonoBehaviour, IKillable
 
     public void attack()
     {
-        playerBehaviour.TakeDamage(50);
-        Debug.Log("Yes");
+        playerBehaviour.TakeDamage(30);
     }
 
     public void TakeDamage(float damage)

@@ -17,7 +17,7 @@ public class PlayerBehaviour : MonoBehaviour, IKillable
     private Enemy currentEnemy;
 
     
-    public float damage = 50f ;
+    public float damage;
 
 
     private void Awake()
@@ -69,12 +69,21 @@ public class PlayerBehaviour : MonoBehaviour, IKillable
         }
     }
 
+    public void DamageDecider()
+    {
+        if (ownedData.weapon == "Owned")
+        {
+            damage = 100;
+        }
+        else
+        {
+            damage = 50;
+        }
+    }
+
     public void Attack(InputAction.CallbackContext context)
     {
-        //enemyData.healthControl(damage);
-        //EnemyMovement.health -= damage;
-        //currentEnemy.health -= damage;
-        //Debug.Log(currentEnemy.health);
+        DamageDecider();
         Debug.Log("yes");
         currentEnemy.TakeDamage(damage);
 
