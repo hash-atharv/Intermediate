@@ -1,9 +1,10 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 public class UIManager : MonoBehaviour
 {
-    
+
     public PlayerControls controls;
     private static UIManager instance = null;
 

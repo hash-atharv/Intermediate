@@ -9,7 +9,6 @@ public class EnemyMovement : MonoBehaviour
     private float currentSpeed;
     private bool isMoving;
 
-    
 
 
     private void Awake()
@@ -39,6 +38,7 @@ public class EnemyMovement : MonoBehaviour
         
         if (other.CompareTag("Player"))
         {
+           
             currentSpeed = 0;
             animator.SetBool("isMoving", false);
 
@@ -47,20 +47,20 @@ public class EnemyMovement : MonoBehaviour
         {
             currentSpeed = speed;
             animator.SetBool("isMoving", true);
+            //animator.SetBool("isInRange", false);
+
         }
 
     }
 
 
-    //private void OnTriggerExit(Collider other)
-    //{
-    //    if (other.CompareTag("Player"))
-    //    {
-    //        currentSpeed = speed;
-    //        animator.SetBool("isMoving", true);
-    //    }
-    //}
 
+    
+
+    public void Attack()
+    {
+
+    }
 
     public void MoveEnemy()
     {

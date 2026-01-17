@@ -1,10 +1,15 @@
+using TMPro;
 using Unity.VisualScripting;
 using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerBehaviour : MonoBehaviour
+public class PlayerBehaviour : MonoBehaviour, IKillable
 {
+    public float health;
+
+    //public GameObject player;
+    public TextMeshProUGUI text;
 
     public PlayerControls controls;
     //[SerializeField] public EnemyData enemyData;
@@ -18,25 +23,13 @@ public class PlayerBehaviour : MonoBehaviour
     private void Awake()
     {
         controls = new PlayerControls();
-
+        health = 100;
     }
-    private void OnTriggerEnter(Collider other)
+
+    private void Update()
     {
-        if (other.CompareTag("Enemy"))
-        {
-            
-            if (other.TryGetComponent<Enemy>(out var enemy))
-            {
-                currentEnemy = enemy;
-               Debug.Log("Enemy in range!");
-                //Debug.Log(currentEnemy);
-
-                //controls.Gameplay.Fire.performed += Attack;
-
-            }
-        }
+        text.text = $"Health:{health}";
     }
-
     private void OnEnable()
     {
         controls.Gameplay.Enable();
@@ -48,7 +41,25 @@ public class PlayerBehaviour : MonoBehaviour
         controls.Gameplay.Disable();
         controls.Gameplay.Fire.performed -= Attack;
     }
+    private void OnTriggerEnter(Collider other)
+    {
+        if (other.CompareTag("Enemy"))
+        {
+            
+            if (other.TryGetComponent<Enemy>(out var enemy))
+            {
+                currentEnemy = enemy;
+               Debug.Log("Enemy in range!");
+               
 
+            }
+        }
+        if (other.CompareTag("Health"))
+        {
+            health += 25;
+            Destroy(other.gameObject);
+        }
+    }
     private void OnTriggerExit(Collider other)
     {
         if (other.CompareTag("Enemy"))
@@ -69,4 +80,17 @@ public class PlayerBehaviour : MonoBehaviour
 
     }
 
+    public void TakeDamage(float damage)
+    {
+        health -= damage;
+        Die();
+    }
+
+    public void Die()
+    {
+        if (health <= 0)
+        {
+            Destroy(gameObject);
+        }
+    }
 }
