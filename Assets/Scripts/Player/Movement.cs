@@ -25,7 +25,8 @@ public class Movement : MonoBehaviour
     {
         controls = new PlayerControls();
         characterController = GetComponent<CharacterController>();
-        
+        controls.Gameplay.Fire.performed += AttackAnim;
+
     }
 
     private void OnEnable() => controls.Gameplay.Enable();
@@ -47,7 +48,7 @@ public class Movement : MonoBehaviour
 
 
         // Attack 
-        controls.Gameplay.Fire.performed += Attack;
+        //controls.Gameplay.Fire.performed += Attack;
 
 
         // For movement input
@@ -65,7 +66,7 @@ public class Movement : MonoBehaviour
         }
     }
 
-    private void Attack(InputAction.CallbackContext context)
+    private void AttackAnim(InputAction.CallbackContext context)
     {
         animator.SetTrigger("Attack");
     }

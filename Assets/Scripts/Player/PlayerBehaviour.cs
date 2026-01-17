@@ -3,14 +3,18 @@ using UnityEditor.Rendering;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-public class PlayerBehaviour : MonoBehaviour, IKillable
+public class PlayerBehaviour : MonoBehaviour
 {
 
     public PlayerControls controls;
-    [SerializeField] public EnemyData enemyData;
+    //[SerializeField] public EnemyData enemyData;
+    
+    private Enemy currentEnemy;
+
+    
+    public float damage = 50f ;
 
 
-    public float damage = 50 ;
     private void Awake()
     {
         controls = new PlayerControls();
@@ -18,17 +22,51 @@ public class PlayerBehaviour : MonoBehaviour, IKillable
     }
     private void OnTriggerEnter(Collider other)
     {
-        if (other.gameObject.CompareTag("Enemy"))
+        if (other.CompareTag("Enemy"))
         {
+            
+            if (other.TryGetComponent<Enemy>(out var enemy))
+            {
+                currentEnemy = enemy;
+               Debug.Log("Enemy in range!");
+                //Debug.Log(currentEnemy);
 
-            controls.Gameplay.Fire.performed += TakeDamage;
+                //controls.Gameplay.Fire.performed += Attack;
+
+            }
         }
     }
 
-    public void TakeDamage(InputAction.CallbackContext context)
+    private void OnEnable()
     {
-        enemyData.healthControl(damage);
+        controls.Gameplay.Enable();
+        controls.Gameplay.Fire.performed += Attack;
+    }
+
+    private void OnDisable()
+    {
+        controls.Gameplay.Disable();
+        controls.Gameplay.Fire.performed -= Attack;
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        if (other.CompareTag("Enemy"))
+        {
+            currentEnemy= null;
+            Debug.Log("Enemy out range!");
+        }
+    }
+
+    public void Attack(InputAction.CallbackContext context)
+    {
+        //enemyData.healthControl(damage);
+        //EnemyMovement.health -= damage;
+        //currentEnemy.health -= damage;
+        //Debug.Log(currentEnemy.health);
+        Debug.Log("yes");
+        currentEnemy.TakeDamage(damage);
 
     }
-    
+
 }

@@ -4,6 +4,7 @@ public class GameManager : MonoBehaviour
 {
    private static GameManager instance = null;
 
+
     private int kills = 0;
 
     public static GameManager Instance
@@ -22,13 +23,14 @@ public class GameManager : MonoBehaviour
 
     private void Awake()
     {
+
         if(instance == null)
         {
             instance = this;
         }
         else if (instance != this && instance != null)
         {
-            Destroy(this.gameObject);
+            Destroy(gameObject);
         }
     }
 

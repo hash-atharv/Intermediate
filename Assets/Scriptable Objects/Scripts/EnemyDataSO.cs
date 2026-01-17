@@ -5,23 +5,23 @@ using UnityEngine;
 public class EnemyData : ScriptableObject
 {
     [SerializeField] private GameObject prefab;
-    [SerializeField] private float health;
+    //[SerializeField] private float health;
     //[SerializeField] public float damage;
-    [SerializeField] private Vector3 spawnPosition;
+    //[SerializeField] private Vector3 ;
     [SerializeField] private Quaternion direction;
 
-    public void Spawner()
+    public void Spawner( Vector3 spawnPosition)
     {
         Instantiate(prefab, spawnPosition, direction);
         
     }
 
-    public void healthControl(float damage)
-    {
-        health -= damage;
+    //public void healthControl(float damage)
+    //{
+    //    health -= damage;
 
-        Debug.Log(health);
-    }
+    //    Debug.Log(health);
+    //}
 
 
 }

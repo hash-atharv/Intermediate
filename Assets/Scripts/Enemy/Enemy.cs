@@ -1,20 +1,31 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-public class Enemy : MonoBehaviour
+public class Enemy : MonoBehaviour, IKillable
 {
-    [SerializeField] public EnemyData enemyData;
+    
 
+    public float health = 100f;
 
-    private void Awake()
+    private void Update()
     {
-        enemyData.Spawner();
-
+        
     }
 
-    //public void TakeDamage(float damage)
-    //{
-    //    //EnemyData.health -= damage;
-    //}
-    
+
+
+    public void TakeDamage(float damage)
+    {
+        //EnemyData.health -= damage;
+
+        health -= damage;
+        Debug.Log(health);
+
+        if (health <= 0)
+        {
+            Destroy(gameObject);
+        }
+    }
+
 
 }
