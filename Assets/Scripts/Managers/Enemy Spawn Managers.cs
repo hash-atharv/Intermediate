@@ -83,7 +83,7 @@ public class EnemySpawnManager : MonoBehaviour
     //  Waypoint Assignment 
     private void AssignWaypoints(GameObject enemy, SpawnPointData spawnData)
     {
-        EnemyAI ai = enemy.GetComponent<EnemyAI>();
+        Enemy ai = enemy.GetComponent<Enemy>();
 
         if (ai == null)
         {
