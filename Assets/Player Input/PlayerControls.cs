@@ -118,6 +118,15 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Throw"",
+                    ""type"": ""Button"",
+                    ""id"": ""9bf60bfd-b4b2-4839-9034-c32b45c6af4b"",
+                    ""expectedControlType"": """",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": false
                 }
             ],
             ""bindings"": [
@@ -197,6 +206,17 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
                     ""action"": ""UI control"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""acd99ef6-8490-4d0e-babd-f9cb569b8e49"",
+                    ""path"": ""<Keyboard>/t"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": """",
+                    ""action"": ""Throw"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -220,6 +240,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         m_Gameplay_Move = m_Gameplay.FindAction("Move", throwIfNotFound: true);
         m_Gameplay_Fire = m_Gameplay.FindAction("Fire", throwIfNotFound: true);
         m_Gameplay_UIcontrol = m_Gameplay.FindAction("UI control", throwIfNotFound: true);
+        m_Gameplay_Throw = m_Gameplay.FindAction("Throw", throwIfNotFound: true);
     }
 
     ~@PlayerControls()
@@ -303,6 +324,7 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
     private readonly InputAction m_Gameplay_Move;
     private readonly InputAction m_Gameplay_Fire;
     private readonly InputAction m_Gameplay_UIcontrol;
+    private readonly InputAction m_Gameplay_Throw;
     /// <summary>
     /// Provides access to input actions defined in input action map "Gameplay".
     /// </summary>
@@ -326,6 +348,10 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// Provides access to the underlying input action "Gameplay/UIcontrol".
         /// </summary>
         public InputAction @UIcontrol => m_Wrapper.m_Gameplay_UIcontrol;
+        /// <summary>
+        /// Provides access to the underlying input action "Gameplay/Throw".
+        /// </summary>
+        public InputAction @Throw => m_Wrapper.m_Gameplay_Throw;
         /// <summary>
         /// Provides access to the underlying input action map instance.
         /// </summary>
@@ -361,6 +387,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @UIcontrol.started += instance.OnUIcontrol;
             @UIcontrol.performed += instance.OnUIcontrol;
             @UIcontrol.canceled += instance.OnUIcontrol;
+            @Throw.started += instance.OnThrow;
+            @Throw.performed += instance.OnThrow;
+            @Throw.canceled += instance.OnThrow;
         }
 
         /// <summary>
@@ -381,6 +410,9 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
             @UIcontrol.started -= instance.OnUIcontrol;
             @UIcontrol.performed -= instance.OnUIcontrol;
             @UIcontrol.canceled -= instance.OnUIcontrol;
+            @Throw.started -= instance.OnThrow;
+            @Throw.performed -= instance.OnThrow;
+            @Throw.canceled -= instance.OnThrow;
         }
 
         /// <summary>
@@ -455,5 +487,12 @@ public partial class @PlayerControls: IInputActionCollection2, IDisposable
         /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
         /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
         void OnUIcontrol(InputAction.CallbackContext context);
+        /// <summary>
+        /// Method invoked when associated input action "Throw" is either <see cref="UnityEngine.InputSystem.InputAction.started" />, <see cref="UnityEngine.InputSystem.InputAction.performed" /> or <see cref="UnityEngine.InputSystem.InputAction.canceled" />.
+        /// </summary>
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.started" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.performed" />
+        /// <seealso cref="UnityEngine.InputSystem.InputAction.canceled" />
+        void OnThrow(InputAction.CallbackContext context);
     }
 }

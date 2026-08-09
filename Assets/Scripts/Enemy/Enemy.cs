@@ -21,6 +21,11 @@ public class Enemy : MonoBehaviour, IKillable
     [SerializeField] private float attackInterval = 1.5f;   // seconds between attacks
     private float attackTimer = 0f;
 
+    //  Armor 
+    [Header("Armor")]
+    [SerializeField] private bool isArmoured = false;
+    [SerializeField] private float armorHealth = 50f;   // only used if isArmoured is true
+
     //  Patrol Settings 
     [Header("Patrol")]
     private List<Transform> waypoints = new List<Transform>();
@@ -237,8 +242,27 @@ public class Enemy : MonoBehaviour, IKillable
     //  Combat / IKillable 
     public void TakeDamage(float damage)
     {
-        EnemyHealth -= damage;
-        Debug.Log(EnemyHealth);
+        // If the enemy is armoured and still has armor left, damage hits the
+        // armor first. Any leftover damage that exceeds the remaining armor
+        // "spills over" onto the enemy's actual health in the same hit.
+        if (isArmoured && armorHealth > 0f)
+        {
+            armorHealth -= damage;
+
+            if (armorHealth < 0f)
+            {
+                float overflowDamage = -armorHealth;   // amount that exceeded the armor
+                armorHealth = 0f;
+                isArmoured = false;                    // armor is broken, future hits go straight to health
+                EnemyHealth -= overflowDamage;
+            }
+        }
+        else
+        {
+            EnemyHealth -= damage;
+        }
+
+        Debug.Log($"ArmorHealth: {armorHealth} | EnemyHealth: {EnemyHealth}");
         Die();
     }
 

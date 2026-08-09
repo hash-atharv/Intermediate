@@ -10,6 +10,14 @@ public class PlayerBehaviour : MonoBehaviour, IKillable
 
     [SerializeField] private float meleeDamage = 25f;   // damage dealt to an enemy when F is pressed in range
 
+    [Header("Grenade")]
+    [SerializeField] private Grenade grenadePrefab;
+    [SerializeField] private Transform throwPoint;       // empty child transform marking where grenades spawn from (defaults to player position if unset)
+    [SerializeField] private float throwDistance = 8f;    // horizontal distance the grenade travels before landing
+    [SerializeField] private float throwArcHeight = 3f;   // peak height of the arc
+    [SerializeField] private float throwDuration = 1f;    // seconds for the grenade to reach its landing point
+    [SerializeField] private LayerMask groundLayer;       // optional: assign your ground/environment layer so the grenade lands at the correct height on uneven terrain
+
     private Enemy currentEnemy;
 
     private void Awake()
@@ -27,12 +35,14 @@ public class PlayerBehaviour : MonoBehaviour, IKillable
     {
         controls.Gameplay.Enable();
         controls.Gameplay.Fire.performed += Attack;
+        controls.Gameplay.Throw.performed += ThrowGrenade;
     }
 
     private void OnDisable()
     {
         controls.Gameplay.Disable();
         controls.Gameplay.Fire.performed -= Attack;
+        controls.Gameplay.Throw.performed -= ThrowGrenade;
     }
 
     private void OnTriggerEnter(Collider other)
@@ -72,6 +82,36 @@ public class PlayerBehaviour : MonoBehaviour, IKillable
         }
 
         currentEnemy.TakeDamage(meleeDamage);
+    }
+
+    // Bound to the "Throw" action (T key). Launches a grenade forward from the player
+    // along a scripted arc that lands throwDistance away.
+    public void ThrowGrenade(InputAction.CallbackContext context)
+    {
+        if (grenadePrefab == null)
+        {
+            Debug.LogWarning("PlayerBehaviour: No grenade prefab assigned.");
+            return;
+        }
+
+        Vector3 origin = throwPoint != null ? throwPoint.position : transform.position;
+
+        Vector3 forward = transform.forward;
+        forward.y = 0f;
+        forward.Normalize();
+
+        Vector3 targetPosition = origin + forward * throwDistance;
+
+        // Try to snap the landing point to the ground so the arc doesn't end floating
+        // above or clipped below uneven terrain. Falls back to origin height if no hit.
+        Vector3 rayStart = targetPosition + Vector3.up * 10f;
+        if (Physics.Raycast(rayStart, Vector3.down, out RaycastHit groundHit, 50f, groundLayer))
+        {
+            targetPosition.y = groundHit.point.y;
+        }
+
+        Grenade grenade = Instantiate(grenadePrefab, origin, Quaternion.identity);
+        grenade.Launch(origin, targetPosition, throwDuration, throwArcHeight);
     }
 
     public void TakeDamage(float damage)

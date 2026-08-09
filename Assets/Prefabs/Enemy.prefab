@@ -213,6 +213,8 @@ MonoBehaviour:
   EnemyHealth: 100
   attackDamage: 30
   attackInterval: 1.5
+  isArmoured: 0
+  armorHealth: 50
   waypointReachThreshold: 0.5
   patrolSpeed: 2
   detectionRadius: 8
