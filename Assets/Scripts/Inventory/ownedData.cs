@@ -8,7 +8,7 @@ public class ownedData : MonoBehaviour
     public static string weapon;
     public static int greCount;
     public static int smoCount;
-
+    public Weapons weaponSO;
 
     private void Start()
     {
@@ -23,10 +23,10 @@ public class ownedData : MonoBehaviour
     {
         if (item == "Weapons")
         { 
-            if (amount >= 1500)
+            if (amount >= weaponSO.weaponCost)
             {
                 weapon = "Owned";
-                amount -= 1500;
+                amount -= weaponSO.weaponCost;
             }
             
         }
@@ -36,9 +36,9 @@ public class ownedData : MonoBehaviour
             {
                 Debug.Log("Full");
             }
-            else if (amount > 500)
+            else if (amount > weaponSO.smokeCost)
             {
-                amount -= 500;
+                amount -= weaponSO.smokeCost;
                 smoCount++;
             }
 
@@ -50,9 +50,9 @@ public class ownedData : MonoBehaviour
                 greCount = 5;
                 Debug.Log("Full");
             }
-            else if (amount > 700)
+            else if (amount > weaponSO.grenadeCost)
             {
-                amount -= 700;
+                amount -= weaponSO.grenadeCost;
                 greCount++;
             }
         }
@@ -66,7 +66,7 @@ public class ownedData : MonoBehaviour
            if (weapon == "Owned")
             {
                 weapon = "Unowned";
-                amount += 1500;
+                amount += weaponSO.weaponCost;
             }
         }
         if (item == "Smokes")
@@ -78,7 +78,7 @@ public class ownedData : MonoBehaviour
             else
             {
                 smoCount--;
-                amount += 500;
+                amount += weaponSO.smokeCost;
             }
             
 
@@ -92,7 +92,7 @@ public class ownedData : MonoBehaviour
             else
             {
                 greCount--;
-                amount += 700;
+                amount += weaponSO.grenadeCost;
             }
         }
     }

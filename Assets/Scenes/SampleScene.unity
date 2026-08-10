@@ -1453,7 +1453,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!224 &587448582
 RectTransform:
   m_ObjectHideFlags: 0
@@ -2348,6 +2348,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 304a47412bb108540a211aea5742ca20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  weaponSO: {fileID: 11400000, guid: 7c94d03c8e8fa2f46aa9aeb5bb72fbba, type: 2}
 --- !u!1 &1127736229
 GameObject:
   m_ObjectHideFlags: 0
@@ -4479,6 +4480,7 @@ MonoBehaviour:
   ownedSmokes: {fileID: 1968346442}
   amountText: {fileID: 911667313}
   weaponText: {fileID: 1256462270}
+  inventory: {fileID: 587448581}
 --- !u!114 &1701320266
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4491,6 +4493,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 304a47412bb108540a211aea5742ca20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  weaponSO: {fileID: 11400000, guid: 7c94d03c8e8fa2f46aa9aeb5bb72fbba, type: 2}
 --- !u!1 &1715652865
 GameObject:
   m_ObjectHideFlags: 0
@@ -4820,6 +4823,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 304a47412bb108540a211aea5742ca20, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  weaponSO: {fileID: 11400000, guid: 7c94d03c8e8fa2f46aa9aeb5bb72fbba, type: 2}
 --- !u!1 &1978514617
 GameObject:
   m_ObjectHideFlags: 0

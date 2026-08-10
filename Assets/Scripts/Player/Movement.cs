@@ -3,24 +3,22 @@ using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-
 public class Movement : MonoBehaviour
 {
     [SerializeField] Animator animator;
-
     public PlayerControls controls;
     public Vector2 moveInput;
     public Vector3 direction;
     public Vector3 velocity;
     public float gravity = -9.81f;
-
     private CharacterController characterController;
-
     public bool isMoving = false;
-    public bool isGrounded ;
+    public bool isRunning = false;          // true while sprinting AND actually moving
+    public bool isGrounded;
     private Vector3 prevMoveData;
     [SerializeField] private float speed = 5f;
-
+    [SerializeField] private float runSpeedMultiplier = 1.75f; // applied to speed while Shift is held and moving
+    private float currentSpeed;              // actual speed used this frame (walk or run)
     private float cameraXRotation;   // tracks vertical camera tilt
     [SerializeField] private float mouseSensitivity = 100f;
     [SerializeField] Transform cameraTransform;
@@ -30,9 +28,7 @@ public class Movement : MonoBehaviour
         controls = new PlayerControls();
         characterController = GetComponent<CharacterController>();
         controls.Gameplay.Fire.performed += AttackAnim;
-
     }
-
     private void OnEnable() => controls.Gameplay.Enable();
     private void OnDisable() => controls.Gameplay.Disable();
 
@@ -47,25 +43,32 @@ public class Movement : MonoBehaviour
         //velocity.y += gravity * Time.deltaTime;
         //characterController.Move(velocity * Time.deltaTime);
 
-
-
-
-
         MouseInput();
 
-
         // For movement input
-        moveInput = controls.Gameplay.Move.ReadValue<Vector2>();  
-        MovePlayer();
+        moveInput = controls.Gameplay.Move.ReadValue<Vector2>();
+
+        // Sprint check - reads the Shift key directly via the Input System's Keyboard device.
+        // No "Sprint" action exists on PlayerControls yet, so this is a direct key read.
+        // If you later add a Sprint InputAction bound to Shift, swap this line for
+        // controls.Gameplay.Sprint.IsPressed() to stay consistent with Move/Fire.
+        bool sprintHeld = Keyboard.current != null && Keyboard.current.shiftKey.isPressed;
+
+        MovePlayer(sprintHeld);
+
         if (isMoving)
         {
-            animator.SetFloat("speed", speed);
+            isRunning = sprintHeld;
+            animator.SetFloat("speed", currentSpeed);
             animator.SetBool("isWalking", true);
+            animator.SetBool("isRunning", isRunning);
         }
-        else if (!isMoving)
+        else
         {
+            isRunning = false;
             animator.SetFloat("speed", 0);
             animator.SetBool("isWalking", false);
+            animator.SetBool("isRunning", false);
         }
     }
 
@@ -74,30 +77,29 @@ public class Movement : MonoBehaviour
         animator.SetTrigger("Attack");
     }
 
-    void MovePlayer()
+    void MovePlayer(bool sprintHeld)
     {
         // Build direction relative to where the player is facing
         Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
 
-        characterController.Move(move * speed * Time.deltaTime);
-        Moving(move);
+        currentSpeed = sprintHeld ? speed * runSpeedMultiplier : speed;
 
+        characterController.Move(move * currentSpeed * Time.deltaTime);
+        Moving(move);
         animator.SetFloat("Xaxis", moveInput.x);
         animator.SetFloat("Yaxis", moveInput.y);
     }
+
     void MouseInput()
     {
         // 1. Get the mouse input 
         float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
         float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
-
         // 2. Rotate the player body left and right
         transform.Rotate(0, mouseX, 0);
-
         // 3. Calculate the up and down camera tilt
         cameraXRotation -= mouseY;
         cameraXRotation = Mathf.Clamp(cameraXRotation, -80f, 80f);
-
         // 4. Apply the tilt to the camera
         cameraTransform.localEulerAngles = new Vector3(cameraXRotation, 0f, 0f);
     }
@@ -107,9 +109,7 @@ public class Movement : MonoBehaviour
         // for maintaining the isMoving boolean 
         if (prevMoveData == null)
         { prevMoveData = move; }
-
         if (prevMoveData != move) { isMoving = true; }
-        else if(prevMoveData == move) { isMoving = false; }
+        else if (prevMoveData == move) { isMoving = false; }
     }
-
 }
