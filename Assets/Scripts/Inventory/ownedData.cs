@@ -4,7 +4,7 @@ using static UnityEditor.Progress;
 public class ownedData : MonoBehaviour
 {
     public static int amount;
-
+    private bool isWeapon;
     public static string weapon;
     public static int greCount;
     public static int smoCount;
@@ -13,6 +13,7 @@ public class ownedData : MonoBehaviour
     private void Start()
     {
         weapon = "unowned";
+        isWeapon = false;
     }
     private void Update()
     {
@@ -22,13 +23,16 @@ public class ownedData : MonoBehaviour
     public void buyItems(string item)
     {
         if (item == "Weapons")
-        { 
-            if (amount >= weaponSO.weaponCost)
+        {
+            if (isWeapon == false)
             {
-                weapon = "Owned";
-                amount -= weaponSO.weaponCost;
+                if (amount >= weaponSO.weaponCost)
+                {
+                    weapon = "Owned";
+                    amount -= weaponSO.weaponCost;
+                    isWeapon = true;
+                }
             }
-            
         }
         if (item == "Smokes")
         {
@@ -63,11 +67,16 @@ public class ownedData : MonoBehaviour
     {
         if (item == "Weapons")
         {
-           if (weapon == "Owned")
+            if(isWeapon == true)
             {
-                weapon = "Unowned";
-                amount += weaponSO.weaponCost;
+                if (weapon == "Owned")
+                {
+                    weapon = "Unowned";
+                    amount += weaponSO.weaponCost;
+                    isWeapon = false;
+                }
             }
+
         }
         if (item == "Smokes")
         {

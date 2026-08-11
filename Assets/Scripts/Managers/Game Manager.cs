@@ -3,6 +3,7 @@ using UnityEngine;
 public class GameManager : MonoBehaviour
 {
    private static GameManager instance = null;
+    public GameObject inventory;
 
 
     private int kills = 0;
@@ -33,8 +34,23 @@ public class GameManager : MonoBehaviour
             Destroy(gameObject);
         }
     }
+    private void Start()
+    {
+        inventory.SetActive(false);
+    }
 
-
+    private void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.B))
+        {
+            if (inventory.activeSelf)
+            {
+                inventory.SetActive(true);
+            }
+            else
+                inventory.SetActive(false);
+        }
+    }
     public void EnemyKilled()
     {
         kills ++;
