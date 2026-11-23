@@ -1,60 +1,81 @@
 using UnityEngine;
 
+public enum GameState
+{
+    Playing,
+    Paused,
+    GameOver
+}
+
 public class GameManager : MonoBehaviour
 {
-   private static GameManager instance = null;
-    public GameObject inventory;
+    public static GameManager Instance { get; private set; }
 
-
-    private int kills = 0;
-
-    public static GameManager Instance
-    {
-        get
-        {
-            if (instance == null)
-            {
-                GameObject temp = new GameObject();
-                instance = temp.AddComponent<GameManager>();
-            }
-            return instance;
-        }
-
-    }
+    public GameState CurrentState { get; private set; } = GameState.Playing;
+    public int Kills { get; private set; }
 
     private void Awake()
     {
-
-        if(instance == null)
-        {
-            instance = this;
-        }
-        else if (instance != this && instance != null)
+        if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
+            return;
         }
-    }
-    private void Start()
-    {
-        inventory.SetActive(false);
+
+        Instance = this;
+        Time.timeScale = 1f; // in case we arrive here from a paused/game-over scene
     }
 
-    private void Update()
+    private void OnEnable()
     {
-        if (Input.GetKeyDown(KeyCode.B))
+        GameEvents.OnEnemyDied += HandleEnemyDied;
+        GameEvents.OnPlayerDied += HandlePlayerDied;
+    }
+
+    private void OnDisable()
+    {
+        GameEvents.OnEnemyDied -= HandleEnemyDied;
+        GameEvents.OnPlayerDied -= HandlePlayerDied;
+    }
+
+    private void OnDestroy()
+    {
+        if (Instance == this)
         {
-            if (inventory.activeSelf)
-            {
-                inventory.SetActive(true);
-            }
-            else
-                inventory.SetActive(false);
+            Instance = null;
         }
     }
-    public void EnemyKilled()
+
+
+    public void SetState(GameState newState)
     {
-        kills ++;
-        Debug.Log($"Kills:{kills}");
+        if (CurrentState == newState) return;
+
+        CurrentState = newState;
+        Time.timeScale = newState == GameState.Playing ? 1f : 0f;
+        GameEvents.RaiseGameStateChanged(newState);
     }
 
+    public void TogglePause()
+    {
+        if (CurrentState == GameState.GameOver) return;
+
+        SetState(CurrentState == GameState.Paused ? GameState.Playing : GameState.Paused);
+    }
+
+    public void GameOver()
+    {
+        SetState(GameState.GameOver);
+    }
+
+
+    private void HandleEnemyDied(int scoreValue)
+    {
+        Kills++;
+    }
+
+    private void HandlePlayerDied()
+    {
+        GameOver();
+    }
 }

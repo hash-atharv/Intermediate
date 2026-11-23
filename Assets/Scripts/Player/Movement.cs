@@ -1,115 +1,147 @@
-using System;
-using System.Runtime.CompilerServices;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+[RequireComponent(typeof(CharacterController))]
 public class Movement : MonoBehaviour
 {
-    [SerializeField] Animator animator;
-    public PlayerControls controls;
-    public Vector2 moveInput;
-    public Vector3 direction;
-    public Vector3 velocity;
-    public float gravity = -9.81f;
-    private CharacterController characterController;
-    public bool isMoving = false;
-    public bool isRunning = false;          // true while sprinting AND actually moving
-    public bool isGrounded;
-    private Vector3 prevMoveData;
+    private static readonly int SpeedHash = Animator.StringToHash("speed");
+    private static readonly int IsWalkingHash = Animator.StringToHash("isWalking");
+    private static readonly int IsRunningHash = Animator.StringToHash("isRunning");
+    private static readonly int XaxisHash = Animator.StringToHash("Xaxis");
+    private static readonly int YaxisHash = Animator.StringToHash("Yaxis");
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private static readonly int JumpHash = Animator.StringToHash("Jump");
+
+    [SerializeField] private Animator animator;
+    [SerializeField] private Transform cameraTransform;
+
+    [Header("Movement")]
     [SerializeField] private float speed = 5f;
     [SerializeField] private float runSpeedMultiplier = 1.75f; // applied to speed while Shift is held and moving
-    private float currentSpeed;              // actual speed used this frame (walk or run)
-    private float cameraXRotation;   // tracks vertical camera tilt
-    [SerializeField] private float mouseSensitivity = 100f;
-    [SerializeField] Transform cameraTransform;
+    [SerializeField] private float gravity = -9.81f;
+    [SerializeField] private float jumpHeight = 1.2f;
 
-    void Awake()
+    public bool IsMoving { get; private set; }
+    public bool IsRunning { get; private set; }   // true while sprinting AND actually moving
+    public bool IsGrounded { get; private set; }
+
+    private PlayerControls controls;
+    private CharacterController characterController;
+    private Vector2 moveInput;
+    private Vector3 direction;
+    private Vector3 velocity;
+    private float currentSpeed;                    // actual speed used this frame (walk or run)
+
+    private static bool IsGamePlaying =>
+        GameManager.Instance == null || GameManager.Instance.CurrentState == GameState.Playing;
+
+    private void Awake()
     {
         controls = new PlayerControls();
         characterController = GetComponent<CharacterController>();
-        controls.Gameplay.Fire.performed += AttackAnim;
+
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
+
+        if (cameraTransform == null && Camera.main != null)
+            cameraTransform = Camera.main.transform;
     }
-    private void OnEnable() => controls.Gameplay.Enable();
-    private void OnDisable() => controls.Gameplay.Disable();
 
-    void Update()
+    private void OnEnable()
     {
-        //For Gravity
-        //isGrounded = characterController.isGrounded;
-        //if (isGrounded && velocity.y < 0f)
-        //{
-        //    velocity.y = -2f;
-        //}
-        //velocity.y += gravity * Time.deltaTime;
-        //characterController.Move(velocity * Time.deltaTime);
+        controls.Gameplay.Enable();
+        controls.Gameplay.Fire.performed += OnFirePerformed;
+    }
 
-        MouseInput();
+    private void OnDisable()
+    {
+        controls.Gameplay.Fire.performed -= OnFirePerformed;
+        controls.Gameplay.Disable();
+    }
 
-        // For movement input
+    private void OnDestroy()
+    {
+        controls?.Dispose();
+    }
+
+    private void Update()
+    {
+        if (!IsGamePlaying) return;
+
+        // Player always faces the direction the camera is looking (Cinemachine FreeLook handles the mouse)
+        FaceCameraDirection();
+
         moveInput = controls.Gameplay.Move.ReadValue<Vector2>();
 
-        // Sprint check - reads the Shift key directly via the Input System's Keyboard device.
-        // No "Sprint" action exists on PlayerControls yet, so this is a direct key read.
-        // If you later add a Sprint InputAction bound to Shift, swap this line for
-        // controls.Gameplay.Sprint.IsPressed() to stay consistent with Move/Fire.
         bool sprintHeld = Keyboard.current != null && Keyboard.current.shiftKey.isPressed;
+        bool jumpPressed = Keyboard.current != null && Keyboard.current.spaceKey.wasPressedThisFrame;
 
-        MovePlayer(sprintHeld);
+        MovePlayer(sprintHeld, jumpPressed);
+        UpdateAnimator();
+    }
 
-        if (isMoving)
+    private void OnFirePerformed(InputAction.CallbackContext context)
+    {
+        if (!IsGamePlaying || animator == null) return;
+
+        animator.SetTrigger(AttackHash);
+    }
+
+    private void FaceCameraDirection()
+    {
+        if (cameraTransform == null) return;
+
+        Vector3 camForward = cameraTransform.forward;
+        camForward.y = 0f;
+
+        if (camForward.sqrMagnitude < 0.0001f) return; // camera looking straight up/down
+
+        transform.rotation = Quaternion.LookRotation(camForward.normalized);
+    }
+
+    private void MovePlayer(bool sprintHeld, bool jumpPressed)
+    {
+        IsMoving = moveInput.sqrMagnitude > 0.0001f;
+        IsRunning = IsMoving && sprintHeld;
+        currentSpeed = IsRunning ? speed * runSpeedMultiplier : speed;
+
+        direction = Vector3.ClampMagnitude(transform.right * moveInput.x + transform.forward * moveInput.y, 1f);
+
+        IsGrounded = characterController.isGrounded;
+        if (IsGrounded && velocity.y < 0f)
         {
-            isRunning = sprintHeld;
-            animator.SetFloat("speed", currentSpeed);
-            animator.SetBool("isWalking", true);
-            animator.SetBool("isRunning", isRunning);
+            velocity.y = -2f;
         }
-        else
+
+        if (IsGrounded && jumpPressed)
         {
-            isRunning = false;
-            animator.SetFloat("speed", 0);
-            animator.SetBool("isWalking", false);
-            animator.SetBool("isRunning", false);
+            velocity.y = Mathf.Sqrt(jumpHeight * -2f * gravity);
+            if (animator != null) animator.SetTrigger(JumpHash);
         }
+
+        velocity.y += gravity * Time.deltaTime;
+
+        Vector3 finalMove = (direction * currentSpeed) + new Vector3(0f, velocity.y, 0f);
+        characterController.Move(finalMove * Time.deltaTime);
     }
 
-    private void AttackAnim(InputAction.CallbackContext context)
+    private void UpdateAnimator()
     {
-        animator.SetTrigger("Attack");
+        if (animator == null) return;
+
+        animator.SetFloat(XaxisHash, moveInput.x);
+        animator.SetFloat(YaxisHash, moveInput.y);
+        animator.SetFloat(SpeedHash, IsMoving ? currentSpeed : 0f);
+        animator.SetBool(IsWalkingHash, IsMoving);
+        animator.SetBool(IsRunningHash, IsRunning);
     }
 
-    void MovePlayer(bool sprintHeld)
+
+    public void Teleport(Vector3 position)
     {
-        // Build direction relative to where the player is facing
-        Vector3 move = transform.right * moveInput.x + transform.forward * moveInput.y;
-
-        currentSpeed = sprintHeld ? speed * runSpeedMultiplier : speed;
-
-        characterController.Move(move * currentSpeed * Time.deltaTime);
-        Moving(move);
-        animator.SetFloat("Xaxis", moveInput.x);
-        animator.SetFloat("Yaxis", moveInput.y);
-    }
-
-    void MouseInput()
-    {
-        // 1. Get the mouse input 
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity;
-        // 2. Rotate the player body left and right
-        transform.Rotate(0, mouseX, 0);
-        // 3. Calculate the up and down camera tilt
-        cameraXRotation -= mouseY;
-        cameraXRotation = Mathf.Clamp(cameraXRotation, -80f, 80f);
-        // 4. Apply the tilt to the camera
-        cameraTransform.localEulerAngles = new Vector3(cameraXRotation, 0f, 0f);
-    }
-
-    private void Moving(Vector3 move)
-    {
-        // for maintaining the isMoving boolean 
-        if (prevMoveData == null)
-        { prevMoveData = move; }
-        if (prevMoveData != move) { isMoving = true; }
-        else if (prevMoveData == move) { isMoving = false; }
+        characterController.enabled = false;
+        transform.position = position;
+        velocity = Vector3.zero;
+        characterController.enabled = true;
     }
 }

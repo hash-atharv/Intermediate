@@ -10,7 +10,7 @@ public class EnemySpawner : MonoBehaviour
 
     private void Awake()
     {
-        enemyData.Spawner(spawnPosition);
+        enemyData.Spawn(spawnPosition);
     }
 
 

@@ -1,182 +1,145 @@
 using System.Collections.Generic;
+using System.Xml;
 using UnityEngine;
 using UnityEngine.AI;
 
+[RequireComponent(typeof(NavMeshAgent))]
 public class Enemy : MonoBehaviour, IKillable
 {
-    //  State 
-    private enum EnemyState { Patrol, Chase }
-    private EnemyState currentState = EnemyState.Patrol;
+    private static readonly int AttackHash = Animator.StringToHash("Attack");
+    private static readonly int IsInRangeHash = Animator.StringToHash("isInRange");
 
-    //  References 
-    [SerializeField] public Animator animator;
-    private NavMeshAgent agent;
-    private PlayerBehaviour playerBehaviour;   // set via melee trigger, used for attack()
-    private Transform playerTransform;         // set via detection sphere, used for chase movement
+    [Header("Data")]
+    [SerializeField] private EnemyData data;   // set automatically by EnemyData.Spawn(); assign manually for scene-placed enemies
 
-    //  Combat 
-    [Header("Combat")]
-    public float EnemyHealth = 100f;
-    [SerializeField] private float attackDamage = 20f;      // damage dealt to the player per hit
-    [SerializeField] private float attackInterval = 1.5f;   // seconds between attacks
-    private float attackTimer = 0f;
+    [Header("References")]
+    [SerializeField] private Animator animator;
 
-    //  Armor 
-    [Header("Armor")]
-    [SerializeField] private bool isArmoured = false;
-    [SerializeField] private float armorHealth = 50f;   // only used if isArmoured is true
-
-    //  Patrol Settings 
-    [Header("Patrol")]
-    private List<Transform> waypoints = new List<Transform>();
-    [SerializeField] private float waypointReachThreshold = 0.5f;
-    [SerializeField] private float patrolSpeed = 2f;
-    private int currentWaypointIndex = 0;
-    private bool waypointsAssigned = false;
-
-    //  Detection Settings (long range - triggers Chase state) 
     [Header("Detection")]
-    [SerializeField] private float detectionRadius = 8f;
     [SerializeField] private LayerMask playerLayer;
+    [SerializeField] private LayerMask obstacleMask;   // layers that block line of sight (walls, etc.). Leave empty = always visible
+    [SerializeField] private float eyeHeight = 1.5f;
 
-    //  Chase Settings 
-    [Header("Chase")]
-    [SerializeField] private float chaseSpeed = 5f;
-    [SerializeField] private float attackRange = 2f;   // how far away the enemy stops and starts attacking
+    // ---- Public read-only API (used by the states) ----
+    public EnemyData Data => data;
+    public NavMeshAgent Agent { get; private set; }
+    public bool IsDead { get; private set; }
+    public float Health => health;
+    public bool IsArmoured => armor > 0f;
+    public IReadOnlyList<Transform> Waypoints => waypoints;
 
-    void Awake()
+    public bool AgentReady => Agent != null && Agent.isActiveAndEnabled && Agent.isOnNavMesh;
+    public bool HasValidTarget => targetPlayer != null && !targetPlayer.IsDead;
+    public Transform Target => targetPlayer != null ? targetPlayer.transform : null;
+    public float DistanceToTarget => HasValidTarget
+        ? Vector3.Distance(transform.position, targetPlayer.transform.position)
+        : float.PositiveInfinity;
+
+    // ---- States ----
+    public PatrolState Patrolling { get; private set; }
+    public ChaseState Chasing { get; private set; }
+    public AttackState Attacking { get; private set; }
+    public DeadState Dying { get; private set; }
+
+    private StateMachine<Enemy> stateMachine;
+    private PlayerBehaviour targetPlayer;
+    private List<Transform> waypoints = new List<Transform>();
+
+    private readonly Collider[] detectionBuffer = new Collider[8];
+    private readonly HashSet<int> animatorParameters = new HashSet<int>();
+
+    private float health;
+    private float armor;
+    private bool dataApplied;
+    private bool started;
+
+    private void Awake()
     {
-        agent = GetComponent<NavMeshAgent>();
-        agent.stoppingDistance = attackRange;
+        Agent = GetComponent<NavMeshAgent>();
+
+        if (animator == null)
+            animator = GetComponentInChildren<Animator>();
+        CacheAnimatorParameters();
+
+        stateMachine = new StateMachine<Enemy>();
+        Patrolling = new PatrolState(this, stateMachine);
+        Chasing = new ChaseState(this, stateMachine);
+        Attacking = new AttackState(this, stateMachine);
+        Dying = new DeadState(this, stateMachine);
     }
 
-    // Called by EnemySpawnManager right after spawning
+    private void Start()
+    {
+        if (data == null)
+        {
+            Debug.LogError($"{name}: no EnemyData assigned.", this);
+            enabled = false;
+            return;
+        }
+
+        if (!dataApplied)
+            ApplyData();
+
+        started = true;
+        stateMachine.Initialize(Patrolling);
+    }
+
+    private void Update()
+    {
+        stateMachine.Tick();
+    }
+
+    // ---- Setup ----
+
+    /// <summary>Called by EnemyData.Spawn() right after instantiating.</summary>
+    public void Initialize(EnemyData enemyData)
+    {
+        if (enemyData == null) return;
+
+        data = enemyData;
+        ApplyData();
+    }
+
+    private void ApplyData()
+    {
+        health = data.MaxHealth;
+        armor = data.IsArmoured ? data.ArmorHealth : 0f;
+        dataApplied = true;
+    }
+
+    /// <summary>Called by the spawner right after spawning.</summary>
     public void SetWaypoints(List<Transform> assignedWaypoints)
     {
-        waypoints = assignedWaypoints;
-        waypointsAssigned = true;
-        EnterPatrol();
+        waypoints = assignedWaypoints ?? new List<Transform>();
+
+        // Already running and patrolling? Restart the route with the new waypoints.
+        if (started && stateMachine.CurrentState == Patrolling)
+            Patrolling.Enter();
     }
 
-    void Update()
+    // ---- Movement helpers (all NavMesh access is guarded) ----
+
+    public void MoveTo(Vector3 destination, float speed, float stoppingDistance)
     {
-        // Wait until waypoints are received from the spawn manager
-        if (!waypointsAssigned) return;
+        if (!AgentReady) return;
 
-        switch (currentState)
-        {
-            case EnemyState.Patrol:
-                PatrolUpdate();
-                DetectPlayer();
-                break;
-
-            case EnemyState.Chase:
-                ChaseUpdate();
-                LosePlayer();
-                break;
-        }
-
-        // Only attack while actively chasing and the player is in melee range
-        if (currentState == EnemyState.Chase)
-            AttackUpdate();
+        Agent.isStopped = false;
+        Agent.speed = speed;
+        Agent.stoppingDistance = stoppingDistance;
+        Agent.SetDestination(destination);
     }
 
-    //  Attack Timer 
-    private void AttackUpdate()
+    public void StopMoving()
     {
-        // Only try to attack while the player is within melee range
-        if (playerBehaviour == null) return;
-
-        attackTimer += Time.deltaTime;
-
-        if (attackTimer >= attackInterval)
-        {
-            attackTimer = 0f;
-
-            // Play the attack animation if one is assigned (visual only).
-            if (animator != null)
-                animator.SetTrigger("Attack");
-
-            // Deal damage directly on the interval so combat works even
-            // without an Animation Event wired up on the Attack clip.
-            attack();
-        }
+        if (AgentReady)
+            Agent.isStopped = true;
     }
 
-    //  Patrol 
-    private void EnterPatrol()
+    public void FaceTarget()
     {
-        currentState = EnemyState.Patrol;
-        agent.speed = patrolSpeed;
+        if (!HasValidTarget) return;
 
-        currentWaypointIndex = GetClosestWaypointIndex();
-        SetDestinationToWaypoint();
-
-        Debug.Log($"{name}: Entering PATROL");
-    }
-
-    private void PatrolUpdate()
-    {
-        if (waypoints.Count == 0) return;
-
-        if (!agent.pathPending && agent.remainingDistance <= waypointReachThreshold)
-            GoToNextWaypoint();
-    }
-
-    private void GoToNextWaypoint()
-    {
-        currentWaypointIndex = (currentWaypointIndex + 1) % waypoints.Count;
-        SetDestinationToWaypoint();
-    }
-
-    private void SetDestinationToWaypoint()
-    {
-        if (waypoints[currentWaypointIndex] != null)
-            agent.SetDestination(waypoints[currentWaypointIndex].position);
-    }
-
-    private int GetClosestWaypointIndex()
-    {
-        int closestIndex = 0;
-        float closestDistance = Mathf.Infinity;
-
-        for (int i = 0; i < waypoints.Count; i++)
-        {
-            if (waypoints[i] == null) continue;
-            float distance = Vector3.Distance(transform.position, waypoints[i].position);
-            if (distance < closestDistance)
-            {
-                closestDistance = distance;
-                closestIndex = i;
-            }
-        }
-        return closestIndex;
-    }
-
-    //  Chase 
-    private void EnterChase()
-    {
-        currentState = EnemyState.Chase;
-        agent.speed = chaseSpeed;
-        Debug.Log($"{name}: Entering CHASE");
-    }
-
-    private void ChaseUpdate()
-    {
-        if (playerTransform == null) return;
-
-        agent.SetDestination(playerTransform.position);
-
-        // Once close enough, stop moving and turn to face the player
-        if (!agent.pathPending && agent.remainingDistance <= attackRange)
-        {
-            FacePlayer();
-        }
-    }
-
-    private void FacePlayer()
-    {
-        Vector3 direction = playerTransform.position - transform.position;
+        Vector3 direction = targetPlayer.transform.position - transform.position;
         direction.y = 0f;
         if (direction.sqrMagnitude < 0.001f) return;
 
@@ -184,101 +147,122 @@ public class Enemy : MonoBehaviour, IKillable
         transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, Time.deltaTime * 10f);
     }
 
-    //  Detection (long range, drives Patrol -> Chase) 
-    private void DetectPlayer()
+    // ---- Detection ----
+
+    /// <summary>Looks for a living, visible player inside the detection radius.</summary>
+    public bool TryAcquireTarget()
     {
-        Collider[] hits = Physics.OverlapSphere(transform.position, detectionRadius, playerLayer);
-        if (hits.Length > 0)
+        int count = Physics.OverlapSphereNonAlloc(transform.position, data.DetectionRadius, detectionBuffer, playerLayer);
+
+        for (int i = 0; i < count; i++)
         {
-            playerTransform = hits[0].transform;
-            EnterChase();
+            PlayerBehaviour player = detectionBuffer[i].GetComponentInParent<PlayerBehaviour>();
+            if (player == null || player.IsDead) continue;
+            if (!HasLineOfSightTo(player.transform)) continue;
+
+            targetPlayer = player;
+            return true;
         }
+
+        return false;
     }
 
-    private void LosePlayer()
+    public void ClearTarget()
     {
-        if (playerTransform == null) { EnterPatrol(); return; }
-
-        float distanceToPlayer = Vector3.Distance(transform.position, playerTransform.position);
-        if (distanceToPlayer > detectionRadius)
-        {
-            playerTransform = null;
-            EnterPatrol();
-        }
+        targetPlayer = null;
     }
 
-    //  Melee Range (short range trigger, drives attack() + animator "isInRange") 
-    private void OnTriggerEnter(Collider other)
+    public bool HasLineOfSight()
     {
-        if (other.CompareTag("Player"))
-        {
-            if (other.TryGetComponent<PlayerBehaviour>(out var player))
-            {
-                playerBehaviour = player;
-                animator.SetBool("isInRange", true);
-                attackTimer = 0f;   // start the interval fresh each time the player enters range
-            }
-        }
+        return HasValidTarget && HasLineOfSightTo(targetPlayer.transform);
     }
 
-    private void OnTriggerExit(Collider other)
+    private bool HasLineOfSightTo(Transform target)
     {
-        if (other.CompareTag("Player"))
-        {
-            playerBehaviour = null;
-            animator.SetBool("isInRange", false);
-            attackTimer = 0f;
-        }
+        Vector3 origin = transform.position + Vector3.up * eyeHeight;
+        Vector3 destination = target.position + Vector3.up * eyeHeight;
+        Vector3 toTarget = destination - origin;
+
+        return !Physics.Raycast(origin, toTarget.normalized, toTarget.magnitude, obstacleMask, QueryTriggerInteraction.Ignore);
     }
 
-    // Called by AttackUpdate() on the interval (also safe to call from an
-    // Animation Event on the Attack clip if you want it re-synced to the anim).
-    public void attack()
+    // ---- Combat ----
+
+    /// <summary>
+    /// Called by AttackState on the attack interval. Override in a subclass
+    /// (e.g. a ranged enemy that fires a projectile instead).
+    /// </summary>
+    public virtual void Attack()
     {
-        if (playerBehaviour != null)
-            playerBehaviour.TakeDamage(attackDamage);
+        if (!HasValidTarget) return;
+
+        SetAnimatorTrigger(AttackHash);
+        targetPlayer.TakeDamage(data.AttackDamage);
     }
 
-    //  Combat / IKillable 
+    // ---- IKillable ----
+
     public void TakeDamage(float damage)
     {
-        // If the enemy is armoured and still has armor left, damage hits the
-        // armor first. Any leftover damage that exceeds the remaining armor
-        // "spills over" onto the enemy's actual health in the same hit.
-        if (isArmoured && armorHealth > 0f)
-        {
-            armorHealth -= damage;
+        if (IsDead || damage <= 0f) return;
 
-            if (armorHealth < 0f)
-            {
-                float overflowDamage = -armorHealth;   // amount that exceeded the armor
-                armorHealth = 0f;
-                isArmoured = false;                    // armor is broken, future hits go straight to health
-                EnemyHealth -= overflowDamage;
-            }
-        }
-        else
+        // Armor absorbs damage first; any leftover spills over onto health in the same hit.
+        float remaining = damage;
+        if (armor > 0f)
         {
-            EnemyHealth -= damage;
+            float absorbed = Mathf.Min(armor, remaining);
+            armor -= absorbed;
+            remaining -= absorbed;
         }
 
-        Debug.Log($"ArmorHealth: {armorHealth} | EnemyHealth: {EnemyHealth}");
-        Die();
+        health -= remaining;
+
+        if (health <= 0f)
+            Die();
     }
 
     public void Die()
     {
-        if (EnemyHealth <= 0)
-        {
-            Destroy(gameObject);
-        }
+        if (IsDead) return;
+
+        IsDead = true;
+        stateMachine.ChangeState(Dying);
     }
 
-    //  Gizmos 
+    // ---- Animator helpers (skip parameters the controller doesn't have) ----
+
+    public void SetInRange(bool value)
+    {
+        if (animator != null && animatorParameters.Contains(IsInRangeHash))
+            animator.SetBool(IsInRangeHash, value);
+    }
+
+    private void SetAnimatorTrigger(int hash)
+    {
+        if (animator != null && animatorParameters.Contains(hash))
+            animator.SetTrigger(hash);
+    }
+
+    private void CacheAnimatorParameters()
+    {
+        if (animator == null || animator.runtimeAnimatorController == null) return;
+
+        foreach (AnimatorControllerParameter parameter in animator.parameters)
+            animatorParameters.Add(parameter.nameHash);
+    }
+
+    // ---- Gizmos ----
+
     private void OnDrawGizmos()
     {
-        Gizmos.color = currentState == EnemyState.Chase ? Color.red : Color.yellow;
-        Gizmos.DrawWireSphere(transform.position, detectionRadius);
+        if (data != null)
+        {
+            bool aggressive = Application.isPlaying && stateMachine != null &&
+                              (stateMachine.CurrentState == Chasing || stateMachine.CurrentState == Attacking);
+
+            Gizmos.color = aggressive ? Color.red : Color.yellow;
+            Gizmos.DrawWireSphere(transform.position, data.DetectionRadius);
+        }
 
         if (waypoints == null || waypoints.Count == 0) return;
 
@@ -293,10 +277,14 @@ public class Enemy : MonoBehaviour, IKillable
                 Gizmos.DrawLine(waypoints[i].position, waypoints[nextIndex].position);
         }
 
-        if (Application.isPlaying && waypoints.Count > 0 && waypoints[currentWaypointIndex] != null)
+        if (Application.isPlaying && Patrolling != null)
         {
-            Gizmos.color = Color.green;
-            Gizmos.DrawSphere(waypoints[currentWaypointIndex].position, 0.3f);
+            int index = Patrolling.CurrentWaypointIndex;
+            if (index < waypoints.Count && waypoints[index] != null)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawSphere(waypoints[index].position, 0.3f);
+            }
         }
     }
 }

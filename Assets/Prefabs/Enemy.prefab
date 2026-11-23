@@ -209,17 +209,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ea50df0d3e03d2f4c9db98e49774d58c, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  data: {fileID: 11400000, guid: 04f6b5d426040204b8f579a712a594f1, type: 2}
   animator: {fileID: 1089293107864481501}
-  EnemyHealth: 100
-  attackDamage: 30
-  attackInterval: 1.5
-  isArmoured: 0
-  armorHealth: 50
-  waypointReachThreshold: 0.5
-  patrolSpeed: 2
-  detectionRadius: 8
   playerLayer:
     serializedVersion: 2
     m_Bits: 8
-  chaseSpeed: 5
-  attackRange: 3
+  obstacleMask:
+    serializedVersion: 2
+    m_Bits: 0
+  eyeHeight: 1.5

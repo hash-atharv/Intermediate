@@ -1,35 +1,49 @@
 using UnityEngine;
 
+
 public class ScoreManager : MonoBehaviour
 {
-    private int totalScore = 0;
+    public int TotalScore { get; private set; }
 
     private void OnEnable()
     {
-        // Tune in to the "OnScoreChanged" radio station
-        GameEvents.OnScoreChanged += AddScore;
+        GameEvents.OnEnemyDied += HandleEnemyDied;
     }
 
     private void OnDisable()
     {
-        // Stop listening when the object is destroyed/disabled
-        GameEvents.OnScoreChanged -= AddScore;
+        GameEvents.OnEnemyDied -= HandleEnemyDied;
     }
 
-
-    public void LoadScoreFromSave(int savedAmount)
+    private void Start()
     {
-        totalScore = savedAmount;
-        // Manually trigger the UI update event so the screen changes
-        GameEvents.RaiseScoreChanged(0);
+        GameEvents.RaiseScoreChanged(TotalScore);
     }
 
-    void AddScore(int amount)
+    public void AddScore(int amount)
     {
-        totalScore += amount;
-        Debug.Log("Current Total Score: " + totalScore);
+        if (amount == 0) return;
+
+        TotalScore = Mathf.Max(0, TotalScore + amount);
+        GameEvents.RaiseScoreChanged(TotalScore);
     }
 
-    // This will be useful for the Save System in Phase 5
-    public int GetCurrentScore() => totalScore;
+    public void LoadScoreFromSave(int savedScore)
+    {
+        TotalScore = Mathf.Max(0, savedScore);
+        GameEvents.RaiseScoreChanged(TotalScore);
+    }
+
+    public void ResetScore()
+    {
+        TotalScore = 0;
+        GameEvents.RaiseScoreChanged(TotalScore);
+    }
+
+    public int GetCurrentScore() => TotalScore;
+
+    private void HandleEnemyDied(int scoreValue)
+    {
+        AddScore(scoreValue);
+    }
 }
